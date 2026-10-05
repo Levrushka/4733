@@ -228,3 +228,10 @@ body.v-box{background:#2a1d14 radial-gradient(ellipse at top,#4a3424,#1b120c) fi
 
 .rec table.vlog td.mark,.rec table.vlog th.mark{border:0;background:transparent;width:2.2em;text-align:center;padding:0}
 .rec table.vlog td.mark{font:26px/1 BS,cursive;color:#ff6b57;transform:rotate(-14deg);text-shadow:0 0 1px #ff6b57}
+.fo .ubar{background:#f3f3e8;border:1px solid #98aab1;border-top:0;padding:4px 8px;font-size:11px;text-align:right;color:#444}
+.fo .ubar b{color:#006699}
+body[data-user="lidia_p"] .fo .ubar{background:#f4e9ff}
+body[data-user="lidia_p"] .fo .ubar b{color:#6b2b8a}
+body[data-user="lidia_p"] .fo .post[data-u="lidia_p"]{background:#fbf3d9;box-shadow:inset 4px 0 0 #d4a017}
+body[data-user="lidia_p"] .fo .post[data-u="lidia_p"] .pd span:first-child::after{content:" · это вы";color:#b07d00;font-weight:bold}
+.fo .pm.new{border-color:#d4a017}

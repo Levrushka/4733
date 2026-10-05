@@ -104,7 +104,7 @@ async function unlock(raw, opts = {}) {
   const b = await bundle(n);
   if (!b) return { st: 'no', n };
   if (b.err) return { st: 'net' };
-  if (opts.accept && !opts.accept(b.d)) return { st: 'no', n };
+  if (opts.gate && !(b.d.g || []).includes(opts.gate)) return { st: (opts.gate === 'term' && b.d.path) ? 'addr' : 'no', n };
   const fresh = !has(n); addProg(n, b.id);
   return { st: 'ok', n, b, fresh };
 }
@@ -136,8 +136,7 @@ function keyForm(el, opts) {
   f.onsubmit = async ev => {
     ev.preventDefault(); const key = opts.key(f); if (!norm(key)) return;
     msg.textContent = opts.wait || '…'; msg.className = 'kfm';
-    const site = (document.body.className.match(/v-(\w+)/) || [])[1] || 'term';
-    const r = await unlock(key, { accept: d => site === 'term' || d.site === site || (d.via || []).includes(site) });
+    const r = await unlock(key, { gate: opts.gate });
     if (r.st === 'ok') { msg.textContent = opts.ok || 'Принято.'; msg.className = 'kfm ok'; await afterUnlock(r, opts); }
     else if (r.st === 'net') { msg.textContent = 'Нет соединения. Попробуйте ещё раз.'; msg.className = 'kfm err'; }
     else { msg.innerHTML = typeof opts.bad === 'function' ? opts.bad(f) : (opts.bad || 'Ничего не найдено.'); msg.className = 'kfm err'; }
@@ -157,10 +156,12 @@ function toast(html) {
   setTimeout(() => t.classList.add('out'), 5200); setTimeout(() => t.remove(), 6000);
 }
 W.search = el => keyForm(el, {
+  gate: el.dataset.gate,
   cls: el.dataset.cls, html: `<input name="q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(el.dataset.ph || 'введите…')}"><button>${esc(el.dataset.btn || 'Найти')}</button>`,
   key: f => f.q.value, bad: el.dataset.bad || 'Ничего не найдено.', ok: el.dataset.ok || 'Найдено.'
 });
 W.login = el => keyForm(el, {
+  gate: el.dataset.gate,
   cls: 'login', html: `<label>${esc(el.dataset.l1 || 'Логин')}<input name="u" autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>${esc(el.dataset.l2 || 'Пароль')}<input name="p" type="${el.dataset.pt || 'password'}" autocomplete="off" autocapitalize="off" spellcheck="false"></label><button>${esc(el.dataset.btn || 'Войти')}</button>`,
   key: f => norm(f.u.value) + ':' + norm(f.p.value),
   bad: f => /[а-яё]/i.test(f.p.value) && el.dataset.layout ? 'Неверный логин или пароль. <b>Проверьте раскладку клавиатуры.</b>' : (el.dataset.bad || 'Неверный логин или пароль.'),
@@ -180,7 +181,7 @@ W.dial = el => {
         if (s.length < 5) { st.textContent = 'Номер короткий: пять цифр.'; return; }
         st.textContent = 'Соединение…'; for (let i = 0; i < 2; i++) { beep(425, 0.9, 0.06, i * 3.2); }
         await sleep(2600);
-        const r = await unlock(s);
+        const r = await unlock(s, { gate: 'nii-dial' });
         if (r.st === 'ok') { st.textContent = 'Снята трубка.'; await afterUnlock(r); }
         else { st.textContent = 'Номер не обслуживается.'; for (let i = 0; i < 4; i++) beep(425, 0.35, 0.05, i * 0.7); s = ''; show(); }
         return;
@@ -191,6 +192,7 @@ W.dial = el => {
   show();
 };
 W.boxlock = el => keyForm(el, {
+  gate: 'boxlock',
   cls: 'boxlock', html: `<label>Кто поджёг станцию?<input name="a" autocomplete="off" spellcheck="false"></label><label>Какую фамилию она носит теперь?<input name="b" autocomplete="off" spellcheck="false"></label><button>Открыть</button>`,
   key: f => norm(f.a.value) + ':' + norm(f.b.value), bad: 'Замок не поддаётся.', ok: 'Щёлк.'
 });
@@ -204,6 +206,12 @@ W.ghost = el => {
     setTimeout(tick, 5000);
   };
   tick();
+};
+W.ubar = el => {
+  const u = document.body.dataset.user, c = document.body.dataset.cand, site = document.body.dataset.site;
+  if (u) el.innerHTML = `Вы вошли как: <b>${esc(u)}</b> · <a href="#" class="uout">выйти</a>`;
+  else el.innerHTML = 'Вы вошли как: <b>гость</b>' + (c ? ` · <a href="#" class="uin">войти как ${esc(c)}</a>` : '');
+  const a = el.querySelector('a'); if (a) a.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); LS.set('zout_' + site, !!u); route(); };
 };
 W.flip = el => { el.addEventListener('click', () => el.classList.toggle('flipped')); };
 W.board = async el => {
@@ -236,7 +244,7 @@ W.console = el => {
   fm.onsubmit = async ev => {
     ev.preventDefault(); const m = fm.querySelector('.kfm');
     const n = norm(fm.m.value); if (n.length !== TOTAL) { m.textContent = `Нужно ровно ${TOTAL} букв. Сейчас: ${n.length}.`; m.className = 'kfm err'; return; }
-    m.textContent = '…'; const r = await unlock(n);
+    m.textContent = '…'; const r = await unlock(n, { gate: 'console' });
     if (r.st === 'ok') { LS.set('zmsgok', fm.m.value.toUpperCase()); m.textContent = 'Сообщение записано. Ждите окна.'; m.className = 'kfm ok'; const cnt = Object.keys(await frags()).length; if (r.fresh && r.b.d.frag) toast(fragLine(r.b.d.frag, true, cnt)); W.board(el.querySelector('.conboard')); }
     else { m.textContent = 'Передатчик не принимает это сообщение.'; m.className = 'kfm err'; }
   };
@@ -291,7 +299,8 @@ async function tryKey(v) {
   const cmd = v.trim().toLowerCase().replace(/ё/g, 'е');
   if (await command(cmd, v.trim())) return;
   const wait = line('…приём…', 'dim');
-  const r = await unlock(v); wait.remove();
+  const r = await unlock(v, { gate: 'term' }); wait.remove();
+  if (r.st === 'addr') { line('Это не ключ, а адрес. Допишите его к адресу этой страницы через «/».', 'sys'); return; }
   if (r.st === 'ok') { if (!r.fresh) line('(уже принято ранее)', 'dim'); await printBundle(r.b, r.fresh); }
   else if (r.st === 'net') line('НЕТ СВЯЗИ С ПРИЁМНИКОМ. Проверьте интернет.', 'err');
   else line(NOPE[Math.floor(Math.random() * NOPE.length)], 'err');
@@ -394,6 +403,7 @@ async function siteModel(name) {
       if (x.site !== name) continue;
       if (x.kind === 'site') m.shell = x;
       Object.assign(m.media, d.media || {}, x.media || {});
+      Object.assign(m.flags, x.flags || {});
       for (const p of (x.pages || [])) {
         if (p.fin && !fin) continue;
         const o = m.pages[p.id]; if (!o || (p.v || 0) >= (o.v || 0)) m.pages[p.id] = p;
@@ -411,8 +421,10 @@ async function renderSite(name, page) {
   if (!m.shell) { render404(); return; }
   const sh = m.shell;
   document.body.className = 'v-' + name;
-  const pages = Object.values(m.pages).sort((a, b) => (a.o || 0) - (b.o || 0));
-  const cur = m.pages[page] || m.pages[sh.home] || pages[0];
+  const user = m.flags.user && !LS.get('zout_' + name, false) ? m.flags.user : '';
+  document.body.dataset.user = user; document.body.dataset.cand = m.flags.user || ''; document.body.dataset.site = name;
+  const pages = Object.values(m.pages).filter(p => !p.auth || p.auth === user).sort((a, b) => (a.o || 0) - (b.o || 0));
+  const cur = pages.find(p => p.id === page) || m.pages[sh.home] || pages[0];
   const fin = LS.get('zfin', null);
   let html = (cur.html || '');
   if (fin) html = html.replace(/\{\{SIG\}\}/g, esc(fin.s));
@@ -445,7 +457,7 @@ async function route() {
     const h = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map(decodeURIComponent);
     const seg = rel.split('/').filter(Boolean)[0];
     if (seg) {
-      const r = await unlock(seg);
+      const r = await unlock(seg, { gate: 'path' });
       if (r.st === 'ok' && h.length) { history.replaceState(null, '', BASE + location.hash); }
       else if (r.st === 'ok') {
         const d = r.b.d;
