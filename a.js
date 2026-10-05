@@ -2,6 +2,8 @@
 (() => {
 const BASE = document.documentElement.dataset.base || '/';
 const ITER = 60000, TOTAL = 33;
+const BV = document.documentElement.dataset.v || '';
+try { for (const k of Object.keys(localStorage)) if (k.startsWith('zb') && !k.startsWith('zb' + BV + '_')) localStorage.removeItem(k); } catch (e) {}
 const WORDS = [4, 5, 2, 4, 6, 6, 6];
 const TE = new TextEncoder(), TD = new TextDecoder();
 const $ = (s, r = document) => r.querySelector(s);
@@ -28,7 +30,7 @@ const cache = {};
 async function bundle(n) {
   const id = await kid(n);
   if (cache[id]) return { n, id, d: cache[id] };
-  const st = LS.get('zb_' + id); if (st) { cache[id] = st; return { n, id, d: st }; }
+  const st = LS.get('zb' + BV + '_' + id); if (st) { cache[id] = st; return { n, id, d: st }; }
   let r; try { r = await fetch(BASE + 'd/' + id + '.j', { cache: 'no-cache' }); } catch (e) { return { err: 1 }; }
   if (!r.ok) return null;
   const raw = b64d(await r.text());
@@ -36,7 +38,7 @@ async function bundle(n) {
     const base = await crypto.subtle.importKey('raw', TE.encode(n), 'PBKDF2', false, ['deriveKey']);
     const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: TE.encode('zh-salt|' + id), iterations: ITER, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
     const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: raw.slice(0, 12) }, key, raw.slice(12));
-    const d = JSON.parse(TD.decode(pt)); cache[id] = d; LS.set('zb_' + id, d); return { n, id, d };
+    const d = JSON.parse(TD.decode(pt)); cache[id] = d; LS.set('zb' + BV + '_' + id, d); return { n, id, d };
   } catch (e) { return null; }
 }
 async function allFound() { const out = []; for (const p of prog()) { const b = await bundle(p.n); if (b && b.d) out.push(b); } return out; }
@@ -102,6 +104,7 @@ async function unlock(raw, opts = {}) {
   const b = await bundle(n);
   if (!b) return { st: 'no', n };
   if (b.err) return { st: 'net' };
+  if (opts.accept && !opts.accept(b.d)) return { st: 'no', n };
   const fresh = !has(n); addProg(n, b.id);
   return { st: 'ok', n, b, fresh };
 }
@@ -133,7 +136,8 @@ function keyForm(el, opts) {
   f.onsubmit = async ev => {
     ev.preventDefault(); const key = opts.key(f); if (!norm(key)) return;
     msg.textContent = opts.wait || '…'; msg.className = 'kfm';
-    const r = await unlock(key);
+    const site = (document.body.className.match(/v-(\w+)/) || [])[1] || 'term';
+    const r = await unlock(key, { accept: d => site === 'term' || d.site === site || (d.via || []).includes(site) });
     if (r.st === 'ok') { msg.textContent = opts.ok || 'Принято.'; msg.className = 'kfm ok'; await afterUnlock(r, opts); }
     else if (r.st === 'net') { msg.textContent = 'Нет соединения. Попробуйте ещё раз.'; msg.className = 'kfm err'; }
     else { msg.innerHTML = typeof opts.bad === 'function' ? opts.bad(f) : (opts.bad || 'Ничего не найдено.'); msg.className = 'kfm err'; }
