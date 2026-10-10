@@ -235,3 +235,13 @@ body[data-user="lidia_p"] .fo .ubar b{color:#6b2b8a}
 body[data-user="lidia_p"] .fo .post[data-u="lidia_p"]{background:#fbf3d9;box-shadow:inset 4px 0 0 #d4a017}
 body[data-user="lidia_p"] .fo .post[data-u="lidia_p"] .pd span:first-child::after{content:" · это вы";color:#b07d00;font-weight:bold}
 .fo .pm.new{border-color:#d4a017}
+.fo .reg{display:inline-block;margin-left:6px;padding:0 4px;font-size:9px;font-weight:normal;color:#a33;border:1px solid #d9a3a3;background:#fff4f4;border-radius:2px;vertical-align:middle;white-space:nowrap}
+body[data-user]:not([data-user=""]) .fo .reg{color:#777;border-color:#ccc;background:#f6f6f6}
+.fo .regmsg{padding:14px 12px;font-size:12px;line-height:1.5}
+.fo .regmsg p{margin:0 0 6px}
+.fo .regmsg .dim{color:#888}
+.fo .regmsg .ubar{border:1px solid #98aab1;text-align:left;margin-top:10px}
+.meta-go{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 6px;padding:10px 14px;background:#0a120c;border:1px solid #2fbf7a;border-radius:4px;color:#7dffb0;font:14px/1.4 ui-monospace,Menlo,Consolas,monospace;text-decoration:none!important;box-shadow:0 0 12px rgba(47,191,122,.25)}
+.meta-go b{color:#ffd56b;font-weight:normal;white-space:nowrap}
+.meta-go:hover{background:#0f1c12}
+.meta-go,.meta-go span{color:#7dffb0!important}.meta-go b{color:#ffd56b!important}

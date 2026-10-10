@@ -158,7 +158,7 @@ function toast(html) {
 W.search = el => keyForm(el, {
   gate: el.dataset.gate,
   cls: el.dataset.cls, html: `<input name="q" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(el.dataset.ph || 'введите…')}"><button>${esc(el.dataset.btn || 'Найти')}</button>`,
-  key: f => f.q.value, bad: el.dataset.bad || 'Ничего не найдено.', ok: el.dataset.ok || 'Найдено.'
+  key: f => (el.dataset.pre || '') + f.q.value, bad: el.dataset.bad || 'Ничего не найдено.', ok: el.dataset.ok || 'Найдено.'
 });
 W.login = el => keyForm(el, {
   gate: el.dataset.gate,
@@ -427,6 +427,7 @@ async function renderSite(name, page) {
   const cur = pages.find(p => p.id === page) || m.pages[sh.home] || pages[0];
   const fin = LS.get('zfin', null);
   let html = (cur.html || '');
+  if (cur.reg && !user) html = `<div class="box"><div class="bh">Доступ ограничен</div><div class="regmsg"><p>Эта тема доступна только зарегистрированным пользователям.</p><p>Войдите на форум под своей учётной записью. <span class="dim">Регистрация новых участников закрыта.</span></p><div data-w="ubar" class="ubar"></div></div></div>`;
   if (fin) html = html.replace(/\{\{SIG\}\}/g, esc(fin.s));
   const menu = pages.filter(p => p.menu).map(p => `<a href="#/s/${name}/${p.id}" class="${p === cur ? 'cur' : ''}${p.sec ? ' sec-' + p.sec : ''}${p.lk ? ' lk' : ''}">${p.menu === true ? esc(p.title) : p.menu}</a>`).join('');
   const lists = {};
